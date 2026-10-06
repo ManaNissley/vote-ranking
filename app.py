@@ -49,10 +49,10 @@ display_cols = [
     "世襲減点", "不祥事減点", "当選後発覚"
 ]
 
-# 【修正箇所】「当選後発覚」の列幅を最大（large）に設定しました
+# 【修正箇所】「備考」と「当選後発覚」をちょうど良いサイズ（medium）に設定しました
 column_config_settings = {
-    "当選後発覚": st.column_config.TextColumn(width="large"),
-    "備考": st.column_config.TextColumn(width="small"),
+    "当選後発覚": st.column_config.TextColumn(width="medium"),
+    "備考": st.column_config.TextColumn(width="medium"),
     "選挙区": st.column_config.TextColumn(width="small")
 }
 
@@ -76,16 +76,4 @@ with tab2:
         filtered_df = df[mask]
         
         if len(filtered_df) > 0:
-            st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True, column_config=column_config_settings)
-        else:
-            st.warning("該当するデータが見つかりません。")
-    else:
-        st.info("👆 上のボックスに市区町村名や過去の候補者名を入力すると表示されます。")
-
-with tab3:
-    st.subheader("⚠ 公的処分歴があるにもかかわらず通してしまったリスト")
-    warning_df = df[df["次回要注意"] != "-"]
-    if len(warning_df) > 0:
-        st.table(warning_df[["ワースト順位", "選挙区", "次回要注意", "2024年政党", "10年総合スコア"]])
-    else:
-        st.write("現在、該当するデータはありません。")
+            st.dataframe(filtered_

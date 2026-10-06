@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import altair as alt  # グラフ描画のための標準ライブラリを追加
+import altair as alt
 
 st.set_page_config(page_title="小選挙区 10年合算 有権者無責任度ランキング", layout="wide")
 
@@ -40,7 +40,6 @@ except Exception as e:
     st.error("データの読み込みに失敗しました。")
     st.stop()
 
-# タブを4つに増やしました
 tab1, tab2, tab3, tab4 = st.tabs(["📊 総合ランキング", "🔍 地元を検索", "📈 データ分析・グラフ", "⚠ 次回要注意リスト"])
 
 display_cols = [
@@ -79,7 +78,6 @@ with tab2:
         if len(filtered_df) > 0:
             st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True, column_config=column_config_settings)
             
-            # 【新機能】検索結果が「1つの選挙区」に絞り込めた時だけグラフを表示
             if len(filtered_df) == 1:
                 st.markdown("---")
                 st.subheader(f"📊 {filtered_df.iloc[0]['選挙区']} の詳細分析")
@@ -98,15 +96,15 @@ with tab2:
                 
                 with col2:
                     st.markdown("**💥 減点要因の内訳**")
-                    # 減点計算
                     turnout_penalty = 100 - (row["10年総合スコア"] - row["世襲減点"] - row["不祥事減点"])
                     penalties = pd.DataFrame({
                         "減点理由": ["①投票率の低さ", "②世襲", "③不祥事"],
                         "引かれた点数": [round(turnout_penalty, 1), abs(row["世襲減点"]), abs(row["不祥事減点"])]
                     })
                     
+                    # 【修正箇所】axis=alt.Axis(labelAngle=0) を追加してラベルを水平にしました
                     chart = alt.Chart(penalties).mark_bar().encode(
-                        x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"]),
+                        x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"], axis=alt.Axis(labelAngle=0)),
                         y=alt.Y("引かれた点数:Q"),
                         color=alt.Color("減点理由:N", legend=None)
                     ).properties(height=300)
@@ -136,8 +134,9 @@ with tab3:
         st.markdown("**2024年当選政党別の平均スコア**")
         party_scores = df.groupby("2024年政党")["10年総合スコア"].mean().reset_index()
         party_scores = party_scores.sort_values("10年総合スコア", ascending=False)
+        # 【修正箇所】ここも水平にしました
         chart2 = alt.Chart(party_scores).mark_bar().encode(
-            x=alt.X("2024年政党:N", sort="-y", title="政党"),
+            x=alt.X("2024年政党:N", sort="-y", title="政党", axis=alt.Axis(labelAngle=0)),
             y=alt.Y("10年総合スコア:Q", title="平均スコア", scale=alt.Scale(domain=[50, 100])),
             color=alt.Color("2024年政党:N", legend=None),
             tooltip=["2024年政党", "10年総合スコア"]

@@ -92,10 +92,10 @@ with tab2:
                     })
                     turnout_data["投票率(%)"] = pd.to_numeric(turnout_data["投票率(%)"], errors="coerce")
                     
-                    # 【修正箇所】titleX=-60 にして、数字との重なりを完全に回避
+                    # 【修正箇所】title=["投", "票", "率", "(%)"] としてカッコを1ブロックにまとめました
                     turnout_chart = alt.Chart(turnout_data).mark_line(point=True).encode(
                         x=alt.X("年:N", sort=None, title="", axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y("投票率(%):Q", title=list("投票率(%)"), scale=alt.Scale(zero=False), axis=alt.Axis(titleAngle=0, titleY=-10, titleX=-60, titleAlign='center'))
+                        y=alt.Y("投票率(%):Q", title=["投", "票", "率", "(%)"], scale=alt.Scale(zero=False), axis=alt.Axis(titleAngle=0, titleY=-10, titleX=-60, titleAlign='center'))
                     ).properties(height=300)
                     st.altair_chart(turnout_chart, use_container_width=True)
                 
@@ -141,7 +141,6 @@ with tab3:
         party_scores = df.groupby("2024年政党")["10年総合スコア"].mean().reset_index()
         party_scores = party_scores.sort_values("10年総合スコア", ascending=False)
         
-        # 【修正箇所】ここも titleX=-60 に設定
         base_chart2 = alt.Chart(party_scores).encode(
             x=alt.X("2024年政党:N", sort="-y", title="", axis=alt.Axis(labelAngle=-45)),
             y=alt.Y("10年総合スコア:Q", title=list("平均スコア"), axis=alt.Axis(titleAngle=0, titleY=20, titleX=-60, titleAlign='center')),

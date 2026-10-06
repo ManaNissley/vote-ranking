@@ -102,9 +102,9 @@ with tab2:
                         "引かれた点数": [round(turnout_penalty, 1), abs(row["世襲減点"]), abs(row["不祥事減点"])]
                     })
                     
-                    # 【修正箇所】axis=alt.Axis(labelAngle=0) を追加してラベルを水平にしました
+                    # 【修正】文字かぶりの原因だった強制横書き設定を削除し、自動調整に戻しました
                     chart = alt.Chart(penalties).mark_bar().encode(
-                        x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"], axis=alt.Axis(labelAngle=0)),
+                        x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"]),
                         y=alt.Y("引かれた点数:Q"),
                         color=alt.Color("減点理由:N", legend=None)
                     ).properties(height=300)
@@ -134,9 +134,10 @@ with tab3:
         st.markdown("**2024年当選政党別の平均スコア**")
         party_scores = df.groupby("2024年政党")["10年総合スコア"].mean().reset_index()
         party_scores = party_scores.sort_values("10年総合スコア", ascending=False)
-        # 【修正箇所】ここも水平にしました
+        
+        # 【修正】こちらも強制横書き設定を削除し、自動調整に戻しました
         chart2 = alt.Chart(party_scores).mark_bar().encode(
-            x=alt.X("2024年政党:N", sort="-y", title="政党", axis=alt.Axis(labelAngle=0)),
+            x=alt.X("2024年政党:N", sort="-y", title="政党"),
             y=alt.Y("10年総合スコア:Q", title="平均スコア", scale=alt.Scale(domain=[50, 100])),
             color=alt.Color("2024年政党:N", legend=None),
             tooltip=["2024年政党", "10年総合スコア"]

@@ -92,10 +92,10 @@ with tab2:
                     })
                     turnout_data["投票率(%)"] = pd.to_numeric(turnout_data["投票率(%)"], errors="coerce")
                     
-                    # 【修正箇所】titleX=-20 等でグラフ側にタイトルを寄せる
+                    # 【修正箇所】titleX=-60 にして、数字との重なりを完全に回避
                     turnout_chart = alt.Chart(turnout_data).mark_line(point=True).encode(
                         x=alt.X("年:N", sort=None, title="", axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y("投票率(%):Q", title=list("投票率(%)"), scale=alt.Scale(zero=False), axis=alt.Axis(titleAngle=0, titleY=-10, titleX=-20, titleAlign='center'))
+                        y=alt.Y("投票率(%):Q", title=list("投票率(%)"), scale=alt.Scale(zero=False), axis=alt.Axis(titleAngle=0, titleY=-10, titleX=-60, titleAlign='center'))
                     ).properties(height=300)
                     st.altair_chart(turnout_chart, use_container_width=True)
                 
@@ -109,7 +109,7 @@ with tab2:
                     
                     base_pen = alt.Chart(penalties).encode(
                         x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"], title="", axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y("引かれた点数:Q", title=list("引かれた点数"), axis=alt.Axis(titleAngle=0, titleY=20, titleX=-20, titleAlign='center'))
+                        y=alt.Y("引かれた点数:Q", title=list("引かれた点数"), axis=alt.Axis(titleAngle=0, titleY=20, titleX=-60, titleAlign='center'))
                     )
                     bar_pen = base_pen.mark_bar().encode(color=alt.Color("減点理由:N", legend=None))
                     text_pen = base_pen.mark_text(dy=-10).encode(text=alt.Text("引かれた点数:Q", format=".1f"))
@@ -130,7 +130,7 @@ with tab3:
         st.markdown("**全国のスコア分布**")
         chart1 = alt.Chart(df).mark_bar(color='#4C72B0').encode(
             alt.X("10年総合スコア:Q", bin=alt.Bin(maxbins=20), title="10年総合スコア（点）"),
-            alt.Y("count():Q", title=list("選挙区の数"), axis=alt.Axis(titleAngle=0, titleY=20, titleX=-20, titleAlign='center')),
+            alt.Y("count():Q", title=list("選挙区の数"), axis=alt.Axis(titleAngle=0, titleY=20, titleX=-60, titleAlign='center')),
             tooltip=["count()"]
         ).properties(height=350)
         st.altair_chart(chart1, use_container_width=True)
@@ -141,9 +141,10 @@ with tab3:
         party_scores = df.groupby("2024年政党")["10年総合スコア"].mean().reset_index()
         party_scores = party_scores.sort_values("10年総合スコア", ascending=False)
         
+        # 【修正箇所】ここも titleX=-60 に設定
         base_chart2 = alt.Chart(party_scores).encode(
             x=alt.X("2024年政党:N", sort="-y", title="", axis=alt.Axis(labelAngle=-45)),
-            y=alt.Y("10年総合スコア:Q", title=list("平均スコア"), axis=alt.Axis(titleAngle=0, titleY=20, titleX=-20, titleAlign='center')),
+            y=alt.Y("10年総合スコア:Q", title=list("平均スコア"), axis=alt.Axis(titleAngle=0, titleY=20, titleX=-60, titleAlign='center')),
             tooltip=["2024年政党", "10年総合スコア"]
         )
         bar2 = base_chart2.mark_bar().encode(

@@ -50,10 +50,10 @@ display_cols = [
     "世襲減点", "不祥事減点", "当選後発覚"
 ]
 
+# 【修正1】選挙区の幅を自動調整（制限解除）にし、神奈川県14区なども切れないようにしました
 column_config_settings = {
     "当選後発覚": st.column_config.TextColumn(width="medium"),
-    "備考": st.column_config.TextColumn(width="medium"),
-    "選挙区": st.column_config.TextColumn(width="small")
+    "備考": st.column_config.TextColumn(width="medium")
 }
 
 with tab1:
@@ -102,7 +102,6 @@ with tab2:
                         "引かれた点数": [round(turnout_penalty, 1), abs(row["世襲減点"]), abs(row["不祥事減点"])]
                     })
                     
-                    # 【修正1】項目が少ないので、首を傾けなくていいように「水平（labelAngle=0）」に設定
                     chart = alt.Chart(penalties).mark_bar().encode(
                         x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"], axis=alt.Axis(labelAngle=0)),
                         y=alt.Y("引かれた点数:Q"),
@@ -135,10 +134,10 @@ with tab3:
         party_scores = df.groupby("2024年政党")["10年総合スコア"].mean().reset_index()
         party_scores = party_scores.sort_values("10年総合スコア", ascending=False)
         
-        # 【修正2】政党名が重なって消えないよう、斜め45度（labelAngle=-45）で強制表示
+        # 【修正2】政党名が重なったり隠れたりするのを防ぐため「横向きの棒グラフ」に変更しました
         chart2 = alt.Chart(party_scores).mark_bar().encode(
-            x=alt.X("2024年政党:N", sort="-y", title="政党", axis=alt.Axis(labelAngle=-45, labelOverlap=False)),
-            y=alt.Y("10年総合スコア:Q", title="平均スコア", scale=alt.Scale(domain=[50, 100])),
+            x=alt.X("10年総合スコア:Q", title="平均スコア", scale=alt.Scale(domain=[50, 100])),
+            y=alt.Y("2024年政党:N", sort="-x", title="政党"),
             color=alt.Color("2024年政党:N", legend=None),
             tooltip=["2024年政党", "10年総合スコア"]
         ).properties(height=350)

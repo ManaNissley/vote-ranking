@@ -52,6 +52,7 @@ display_cols = [
 # 【修正箇所】「備考」と「当選後発覚」をちょうど良いサイズ（medium）に設定
 column_config_settings = {
     "当選後発覚": st.column_config.TextColumn(width="medium"),
+    "備考": st.column_config.TextColumn(width="medium"),
     "選挙区": st.column_config.TextColumn(width="small")
 }
 

@@ -50,7 +50,7 @@ display_cols = [
     "世襲減点", "不祥事減点", "当選後発覚"
 ]
 
-# 【修正1】選挙区の幅を自動調整（制限解除）にし、神奈川県14区なども切れないようにしました
+# 【修正1】選挙区の固定幅指定を解除し、自動で文字切れを防ぐようにしました
 column_config_settings = {
     "当選後発覚": st.column_config.TextColumn(width="medium"),
     "備考": st.column_config.TextColumn(width="medium")
@@ -102,12 +102,15 @@ with tab2:
                         "引かれた点数": [round(turnout_penalty, 1), abs(row["世襲減点"]), abs(row["不祥事減点"])]
                     })
                     
-                    chart = alt.Chart(penalties).mark_bar().encode(
+                    # 減点グラフの上に直接数値を表示
+                    base_pen = alt.Chart(penalties).encode(
                         x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"], axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y("引かれた点数:Q"),
-                        color=alt.Color("減点理由:N", legend=None)
-                    ).properties(height=300)
-                    st.altair_chart(chart, use_container_width=True)
+                        y=alt.Y("引かれた点数:Q")
+                    )
+                    bar_pen = base_pen.mark_bar().encode(color=alt.Color("減点理由:N", legend=None))
+                    text_pen = base_pen.mark_text(dy=-10).encode(text=alt.Text("引かれた点数:Q", format=".1f"))
+                    
+                    st.altair_chart((bar_pen + text_pen).properties(height=300), use_container_width=True)
             else:
                 st.info("💡 もう少しキーワードを足して【1つの選挙区に絞り込む】と、詳細なグラフが表示されます！")
         else:
@@ -134,14 +137,20 @@ with tab3:
         party_scores = df.groupby("2024年政党")["10年総合スコア"].mean().reset_index()
         party_scores = party_scores.sort_values("10年総合スコア", ascending=False)
         
-        # 【修正2】政党名が重なったり隠れたりするのを防ぐため「横向きの棒グラフ」に変更しました
-        chart2 = alt.Chart(party_scores).mark_bar().encode(
-            x=alt.X("10年総合スコア:Q", title="平均スコア", scale=alt.Scale(domain=[50, 100])),
-            y=alt.Y("2024年政党:N", sort="-x", title="政党"),
-            color=alt.Color("2024年政党:N", legend=None),
+        # 【修正2】縦グラフに戻し、政党名を斜め45度に。さらにバーの上に数値を表示！
+        base_chart2 = alt.Chart(party_scores).encode(
+            x=alt.X("2024年政党:N", sort="-y", title="政党", axis=alt.Axis(labelAngle=-45)),
+            y=alt.Y("10年総合スコア:Q", title="平均スコア", scale=alt.Scale(domain=[50, 100])),
             tooltip=["2024年政党", "10年総合スコア"]
-        ).properties(height=350)
-        st.altair_chart(chart2, use_container_width=True)
+        )
+        bar2 = base_chart2.mark_bar().encode(
+            color=alt.Color("2024年政党:N", legend=None)
+        )
+        text2 = base_chart2.mark_text(dy=-10).encode(
+            text=alt.Text("10年総合スコア:Q", format=".1f")
+        )
+        
+        st.altair_chart((bar2 + text2).properties(height=350), use_container_width=True)
         st.caption("※2024年の小選挙区で勝利した政党ごとに、その選挙区の過去10年スコア平均を出したものです。")
 
 with tab4:

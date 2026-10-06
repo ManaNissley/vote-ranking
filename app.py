@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import altair as alt  # グラフ描画のための標準ライブラリを追加
 
 st.set_page_config(page_title="小選挙区 10年合算 有権者無責任度ランキング", layout="wide")
 
@@ -39,7 +40,8 @@ except Exception as e:
     st.error("データの読み込みに失敗しました。")
     st.stop()
 
-tab1, tab2, tab3 = st.tabs(["📊 総合ランキング", "🔍 地元を検索", "⚠ 次回要注意リスト"])
+# タブを4つに増やしました
+tab1, tab2, tab3, tab4 = st.tabs(["📊 総合ランキング", "🔍 地元を検索", "📈 データ分析・グラフ", "⚠ 次回要注意リスト"])
 
 display_cols = [
     "ワースト順位", "選挙区", "10年総合スコア", "備考",
@@ -49,7 +51,6 @@ display_cols = [
     "世襲減点", "不祥事減点", "当選後発覚"
 ]
 
-# 【修正箇所】「備考」と「当選後発覚」をちょうど良いサイズ（medium）に設定
 column_config_settings = {
     "当選後発覚": st.column_config.TextColumn(width="medium"),
     "備考": st.column_config.TextColumn(width="medium"),
@@ -77,12 +78,74 @@ with tab2:
         
         if len(filtered_df) > 0:
             st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True, column_config=column_config_settings)
+            
+            # 【新機能】検索結果が「1つの選挙区」に絞り込めた時だけグラフを表示
+            if len(filtered_df) == 1:
+                st.markdown("---")
+                st.subheader(f"📊 {filtered_df.iloc[0]['選挙区']} の詳細分析")
+                
+                row = filtered_df.iloc[0]
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**📉 過去3回の投票率推移**")
+                    turnout_data = pd.DataFrame({
+                        "年": ["2017年", "2021年", "2024年"],
+                        "投票率(%)": [row["2017年投票率"], row["2021年投票率"], row["2024年投票率"]]
+                    })
+                    turnout_data["投票率(%)"] = pd.to_numeric(turnout_data["投票率(%)"], errors="coerce")
+                    st.line_chart(turnout_data.set_index("年"))
+                
+                with col2:
+                    st.markdown("**💥 減点要因の内訳**")
+                    # 減点計算
+                    turnout_penalty = 100 - (row["10年総合スコア"] - row["世襲減点"] - row["不祥事減点"])
+                    penalties = pd.DataFrame({
+                        "減点理由": ["①投票率の低さ", "②世襲", "③不祥事"],
+                        "引かれた点数": [round(turnout_penalty, 1), abs(row["世襲減点"]), abs(row["不祥事減点"])]
+                    })
+                    
+                    chart = alt.Chart(penalties).mark_bar().encode(
+                        x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"]),
+                        y=alt.Y("引かれた点数:Q"),
+                        color=alt.Color("減点理由:N", legend=None)
+                    ).properties(height=300)
+                    st.altair_chart(chart, use_container_width=True)
+            else:
+                st.info("💡 もう少しキーワードを足して【1つの選挙区に絞り込む】と、詳細なグラフが表示されます！")
         else:
             st.warning("該当するデータが見つかりません。")
     else:
         st.info("👆 上のボックスに市区町村名や過去の候補者名を入力すると表示されます。")
 
 with tab3:
+    st.subheader("📈 データ分析（全国傾向）")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**全国のスコア分布**")
+        chart1 = alt.Chart(df).mark_bar(color='#4C72B0').encode(
+            alt.X("10年総合スコア:Q", bin=alt.Bin(maxbins=20), title="10年総合スコア（点）"),
+            alt.Y("count():Q", title="選挙区の数"),
+            tooltip=["count()"]
+        ).properties(height=350)
+        st.altair_chart(chart1, use_container_width=True)
+        st.caption("※右にいくほどスコアが高い（チェックが機能している）ことを示します。")
+
+    with col2:
+        st.markdown("**2024年当選政党別の平均スコア**")
+        party_scores = df.groupby("2024年政党")["10年総合スコア"].mean().reset_index()
+        party_scores = party_scores.sort_values("10年総合スコア", ascending=False)
+        chart2 = alt.Chart(party_scores).mark_bar().encode(
+            x=alt.X("2024年政党:N", sort="-y", title="政党"),
+            y=alt.Y("10年総合スコア:Q", title="平均スコア", scale=alt.Scale(domain=[50, 100])),
+            color=alt.Color("2024年政党:N", legend=None),
+            tooltip=["2024年政党", "10年総合スコア"]
+        ).properties(height=350)
+        st.altair_chart(chart2, use_container_width=True)
+        st.caption("※2024年の小選挙区で勝利した政党ごとに、その選挙区の過去10年スコア平均を出したものです。")
+
+with tab4:
     st.subheader("⚠ 公的処分歴があるにもかかわらず通してしまったリスト")
     warning_df = df[df["次回要注意"] != "-"]
     if len(warning_df) > 0:

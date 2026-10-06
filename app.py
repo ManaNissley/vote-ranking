@@ -50,7 +50,6 @@ display_cols = [
     "世襲減点", "不祥事減点", "当選後発覚"
 ]
 
-# 【修正1】選挙区の固定幅指定を解除し、自動で文字切れを防ぐようにしました
 column_config_settings = {
     "当選後発覚": st.column_config.TextColumn(width="medium"),
     "備考": st.column_config.TextColumn(width="medium")
@@ -92,7 +91,13 @@ with tab2:
                         "投票率(%)": [row["2017年投票率"], row["2021年投票率"], row["2024年投票率"]]
                     })
                     turnout_data["投票率(%)"] = pd.to_numeric(turnout_data["投票率(%)"], errors="coerce")
-                    st.line_chart(turnout_data.set_index("年"))
+                    
+                    # 【修正1】折れ線グラフを本格仕様に変更し、X軸を水平に、Y軸タイトルを縦書きに！
+                    turnout_chart = alt.Chart(turnout_data).mark_line(point=True).encode(
+                        x=alt.X("年:N", sort=None, title="", axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y("投票率(%):Q", title=["投", "票", "率", "(%)"], scale=alt.Scale(zero=False), axis=alt.Axis(titleAngle=0))
+                    ).properties(height=300)
+                    st.altair_chart(turnout_chart, use_container_width=True)
                 
                 with col2:
                     st.markdown("**💥 減点要因の内訳**")
@@ -102,9 +107,10 @@ with tab2:
                         "引かれた点数": [round(turnout_penalty, 1), abs(row["世襲減点"]), abs(row["不祥事減点"])]
                     })
                     
+                    # 【修正2】Y軸タイトルを縦書きに
                     base_pen = alt.Chart(penalties).encode(
-                        x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"], axis=alt.Axis(labelAngle=0)),
-                        y=alt.Y("引かれた点数:Q")
+                        x=alt.X("減点理由:N", sort=["①投票率の低さ", "②世襲", "③不祥事"], title="", axis=alt.Axis(labelAngle=0)),
+                        y=alt.Y("引かれた点数:Q", title=list("引かれた点数"), axis=alt.Axis(titleAngle=0))
                     )
                     bar_pen = base_pen.mark_bar().encode(color=alt.Color("減点理由:N", legend=None))
                     text_pen = base_pen.mark_text(dy=-10).encode(text=alt.Text("引かれた点数:Q", format=".1f"))
@@ -123,9 +129,10 @@ with tab3:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("**全国のスコア分布**")
+        # 【修正3】Y軸タイトルを縦書きに
         chart1 = alt.Chart(df).mark_bar(color='#4C72B0').encode(
             alt.X("10年総合スコア:Q", bin=alt.Bin(maxbins=20), title="10年総合スコア（点）"),
-            alt.Y("count():Q", title="選挙区の数"),
+            alt.Y("count():Q", title=list("選挙区の数"), axis=alt.Axis(titleAngle=0)),
             tooltip=["count()"]
         ).properties(height=350)
         st.altair_chart(chart1, use_container_width=True)
@@ -136,10 +143,10 @@ with tab3:
         party_scores = df.groupby("2024年政党")["10年総合スコア"].mean().reset_index()
         party_scores = party_scores.sort_values("10年総合スコア", ascending=False)
         
-        # 【修正2】スタートを50にする設定を削除。これで文字が一番下に綺麗に表示されます。
+        # 【修正4】Y軸タイトルを縦書きに
         base_chart2 = alt.Chart(party_scores).encode(
-            x=alt.X("2024年政党:N", sort="-y", title="政党", axis=alt.Axis(labelAngle=-45)),
-            y=alt.Y("10年総合スコア:Q", title="平均スコア"),
+            x=alt.X("2024年政党:N", sort="-y", title="", axis=alt.Axis(labelAngle=-45)),
+            y=alt.Y("10年総合スコア:Q", title=list("平均スコア"), axis=alt.Axis(titleAngle=0)),
             tooltip=["2024年政党", "10年総合スコア"]
         )
         bar2 = base_chart2.mark_bar().encode(

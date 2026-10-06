@@ -12,60 +12,64 @@ st.markdown("""
 ---
 """)
 
-@st.cache_data
+# 【修正1】キャッシュ（アプリの記憶）を60秒でリセットし、常に最新のデータを読み込む設定
+@st.cache_data(ttl=60)
 def load_data():
-    # GitHubに保存したマスターデータを読み込む
     df = pd.read_csv("japan_voter_ranking_master.csv")
     
-    # スコアが低い順（ワースト順）に並び替え
-    df = df.sort_values("10年総合スコア").reset_index(drop=True)
+    # 【修正2】万が一、古いダミーデータと新しいデータが両方残っていた場合、古いものを自動で削除する
+    df = df.drop_duplicates(subset=["選挙区"], keep="last")
     
-    # ワースト順位を付ける (1からスタート)
+    df = df.sort_values("10年総合スコア").reset_index(drop=True)
     df.index = df.index + 1
     df = df.reset_index().rename(columns={"index": "ワースト順位"})
-    
-    # 空欄（欠損値）をハイフンに変換（エラー防止）
     df = df.fillna("-")
     return df
 
 try:
     df = load_data()
 except Exception as e:
-    st.error("データの読み込みに失敗しました。ファイルが正しく保存されているか確認してください。")
+    st.error("データの読み込みに失敗しました。")
     st.stop()
 
-tab1, tab2, tab3 = st.tabs(["🔍 地元を検索 (市区町村・候補者名)", "📊 総合ランキング", "⚠ 次回要注意リスト"])
+tab1, tab2, tab3 = st.tabs(["📊 総合ランキング", "🔍 地元を検索", "⚠ 次回要注意リスト"])
 
 with tab1:
+    st.subheader("10年合算 総合スコア（ワースト順）")
+    st.markdown("※表は横にスクロールできます。列名をクリックすると並び替えが可能です。")
+    display_cols = [
+        "ワースト順位", "選挙区", "10年総合スコア", 
+        "2024年当選者", "2024年政党", "2024年投票率",
+        "2021年当選者", "2021年投票率",
+        "2017年当選者", "2017年投票率",
+        "世襲減点", "不祥事減点", "当選後発覚"
+    ]
+    st.dataframe(df[display_cols], use_container_width=True, hide_index=True)
+
+with tab2:
     st.subheader("🔍 あなたの選挙区を検索")
-    search_query = st.text_input("市区町村名、または候補者名、政党名を入力してください（例：八王子市、世耕、千葉県）")
+    search_query = st.text_input("市区町村名、候補者名、政党名を入力してください")
     if search_query:
-        # 複数の列からキーワードを検索
+        # 【修正3】2017年・2021年の過去の候補者名でも検索できるようにパワーアップ
         mask = (
             df["選挙区"].astype(str).str.contains(search_query) | 
             df["市区町村"].astype(str).str.contains(search_query) | 
             df["2024年当選者"].astype(str).str.contains(search_query) |
-            df["2024年政党"].astype(str).str.contains(search_query)
+            df["2024年政党"].astype(str).str.contains(search_query) |
+            df["2021年当選者"].astype(str).str.contains(search_query) |
+            df["2017年当選者"].astype(str).str.contains(search_query)
         )
         filtered_df = df[mask]
         
         if len(filtered_df) > 0:
-            display_cols = ["ワースト順位", "選挙区", "市区町村", "10年総合スコア", "2024年当選者", "2024年政党", "世襲減点", "不祥事減点", "当選後発覚"]
             st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True)
         else:
-            st.warning("該当するデータが見つかりません。別のキーワードを試してください。")
+            st.warning("該当するデータが見つかりません。")
     else:
-        st.info("👆 上のボックスに市区町村名を入力すると、あなたの地元の「バカ度」が表示されます。")
-
-with tab2:
-    st.subheader("10年合算 総合スコア（ワースト順）")
-    st.markdown("※列名をクリックすると並び替えができます。横にスクロールして全項目を確認できます。")
-    display_df = df[["ワースト順位", "選挙区", "10年総合スコア", "2024年当選者", "2024年政党", "世襲減点", "不祥事減点", "当選後発覚"]]
-    st.dataframe(display_df, use_container_width=True, hide_index=True)
+        st.info("👆 上のボックスに市区町村名（例：那覇市、福山市）や候補者名を入力すると表示されます。")
 
 with tab3:
     st.subheader("⚠ 公的処分歴があるにもかかわらず通してしまったリスト")
-    st.markdown("今回の選挙において、重大な不祥事の減点があったにも関わらず当選した議員です。")
     warning_df = df[df["次回要注意"] != "-"]
     if len(warning_df) > 0:
         st.table(warning_df[["ワースト順位", "選挙区", "次回要注意", "2024年政党", "10年総合スコア"]])

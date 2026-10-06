@@ -18,21 +18,15 @@ st.markdown("""
 @st.cache_data(ttl=60)
 def load_data():
     df = pd.read_csv("japan_voter_ranking_master.csv")
-    
-    # 万が一の重複削除
     df = df.drop_duplicates(subset=["選挙区"], keep="last")
-    
-    # 【解決1】廃止された「広島県 7区」を自動で除外して、正しい289区にする
     df = df[df["選挙区"] != "広島県 7区"]
     
-    # 【解決2】新設区の注釈を自動追加する（備考列の作成）
     def check_new_district(row):
         if "新設前" in str(row["2021年当選者"]):
             return "🆕2024年新設区"
         return "-"
-    df.insert(3, "備考（区割り変更等）", df.apply(check_new_district, axis=1))
+    df.insert(3, "備考", df.apply(check_new_district, axis=1))
 
-    # スコア順に並び替え
     df = df.sort_values("10年総合スコア").reset_index(drop=True)
     df.index = df.index + 1
     df = df.reset_index().rename(columns={"index": "ワースト順位"})
@@ -47,19 +41,25 @@ except Exception as e:
 
 tab1, tab2, tab3 = st.tabs(["📊 総合ランキング", "🔍 地元を検索", "⚠ 次回要注意リスト"])
 
-# 表示する列の順番（備考列を追加）
 display_cols = [
-    "ワースト順位", "選挙区", "10年総合スコア", "備考（区割り変更等）",
+    "ワースト順位", "選挙区", "10年総合スコア", "備考",
     "2024年当選者", "2024年政党", "2024年投票率",
     "2021年当選者", "2021年投票率",
     "2017年当選者", "2017年投票率",
     "世襲減点", "不祥事減点", "当選後発覚"
 ]
 
+# 【修正箇所】「当選後発覚」の列幅を最大（large）に設定しました
+column_config_settings = {
+    "当選後発覚": st.column_config.TextColumn(width="large"),
+    "備考": st.column_config.TextColumn(width="small"),
+    "選挙区": st.column_config.TextColumn(width="small")
+}
+
 with tab1:
     st.subheader(f"10年合算 総合スコア（全{len(df)}選挙区 ワースト順）")
     st.markdown("※表は横にスクロールできます。列名をクリックすると並び替えが可能です。")
-    st.dataframe(df[display_cols], use_container_width=True, hide_index=True)
+    st.dataframe(df[display_cols], use_container_width=True, hide_index=True, column_config=column_config_settings)
 
 with tab2:
     st.subheader("🔍 あなたの選挙区を検索")
@@ -76,7 +76,7 @@ with tab2:
         filtered_df = df[mask]
         
         if len(filtered_df) > 0:
-            st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True)
+            st.dataframe(filtered_df[display_cols], use_container_width=True, hide_index=True, column_config=column_config_settings)
         else:
             st.warning("該当するデータが見つかりません。")
     else:
